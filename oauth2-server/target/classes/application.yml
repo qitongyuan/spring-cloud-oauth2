@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: oauth2-server
+#  security:
+#    user:
+#      name: admin
+#      password: admin
+#      roles: admin
+server:
+  port: 8081
