@@ -8,13 +8,17 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 @Configuration
 @EnableGlobalMethodSecurity(securedEnabled = true,prePostEnabled = true)
 public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
+
+    /**
+     * 拦截鉴权
+     * @param http
+     * @throws Exception
+     */
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.csrf().disable()
                 .authorizeRequests()
                 .antMatchers("/order/**").authenticated()//所有/order/**的请求必须认证通过
-                .anyRequest().permitAll()//除了/order/**，其它的请求可以访问
-        ;
-
+                .anyRequest().permitAll();//除了/order/**，其它的请求可以访问
     }
 }

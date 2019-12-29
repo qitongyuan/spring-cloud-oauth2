@@ -15,6 +15,7 @@ import org.springframework.security.oauth2.provider.token.ResourceServerTokenSer
 @EnableResourceServer
 public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
 
+    //资源ID
     public static final String RESOURCE_ID = "RESOURCE";
 
     @Override
@@ -26,7 +27,6 @@ public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
 
     @Override
     public void configure(HttpSecurity http) throws Exception {
-
         http
                 .authorizeRequests()
                 .antMatchers("/**").access("#oauth2.hasScope('pc')")

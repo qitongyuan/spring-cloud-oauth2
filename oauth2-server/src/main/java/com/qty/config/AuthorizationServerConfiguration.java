@@ -97,6 +97,10 @@ public class AuthorizationServerConfiguration extends AuthorizationServerConfigu
     }
 
 
+    /**
+     * 密码加密方式
+     * @return
+     */
     @Bean
     public BCryptPasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();
@@ -160,9 +164,9 @@ public class AuthorizationServerConfiguration extends AuthorizationServerConfigu
     @Bean
     UserDetailsService userDetailsService() {
         InMemoryUserDetailsManager userDetailsService = new InMemoryUserDetailsManager();
-        userDetailsService.createUser(User.withUsername("user_1").password(passwordEncoder().encode("123456"))
-                .authorities("ROLE_USER").build());
-        userDetailsService.createUser(User.withUsername("user_2").password(passwordEncoder().encode("1234567"))
+        userDetailsService.createUser(User.withUsername("admin").password(passwordEncoder().encode("admin"))
+                .authorities("ROLE_ADMIN").build());
+        userDetailsService.createUser(User.withUsername("user").password(passwordEncoder().encode("user"))
                 .authorities("ROLE_USER").build());
         return userDetailsService;
     }

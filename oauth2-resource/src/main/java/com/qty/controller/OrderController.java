@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrderController {
 
     @GetMapping(value = "/get")
-    @PreAuthorize("hasAuthority('ROLE_USER')")//拥有p1权限方可访问此url
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")//拥有此权限方可访问此资源
     public String get(){
         return "资源访问成功";
     }
