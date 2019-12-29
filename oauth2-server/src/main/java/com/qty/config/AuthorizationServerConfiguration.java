@@ -5,6 +5,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.config.annotation.configurers.ClientDetailsServiceConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.AuthorizationServerConfigurerAdapter;
@@ -17,6 +23,7 @@ import org.springframework.security.oauth2.provider.code.InMemoryAuthorizationCo
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
 import org.springframework.security.oauth2.provider.token.TokenStore;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 
 import javax.annotation.Resource;
 
@@ -27,8 +34,7 @@ import javax.annotation.Resource;
 @EnableAuthorizationServer
 public class AuthorizationServerConfiguration extends AuthorizationServerConfigurerAdapter {
 
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+
 
     @Autowired
     private TokenStore tokenStore;
@@ -54,33 +60,11 @@ public class AuthorizationServerConfiguration extends AuthorizationServerConfigu
         //客户端配置(授权码模式存在内存中，比较客户端id )
         clients.inMemory()
                 .withClient("client")//客户端的id
-                .secret(passwordEncoder.encode("secret"))//客户端的密钥
+                .secret(passwordEncoder().encode("secret"))//客户端的密钥
+                .resourceIds("RESOURCE")//允许访问的资源ID
                 .authorizedGrantTypes("authorization_code","password","refresh_token")//授权类型
                 .scopes("pc")//允许授权的范围
                 .redirectUris("http://baidu.com");//回调地址
-    }
-
-
-    /**
-     * 令牌的设置（管理服务）
-     * @return
-     */
-    @Bean
-    public AuthorizationServerTokenServices tokenServices(){
-        DefaultTokenServices services=new DefaultTokenServices();
-        services.setClientDetailsService(clientDetailsService);//客户端信息服务
-        services.setSupportRefreshToken(true);//是否刷新令牌
-        services.setTokenStore(tokenStore);//令牌的存储策略
-        services.setAccessTokenValiditySeconds(7200);//令牌的有效期2小时
-        services.setRefreshTokenValiditySeconds(259200);//刷新令牌的有效期3天
-        return services;
-    }
-
-
-    //设置授权码模式的授权码如何存取，暂时采用内存方式
-    @Bean
-    public AuthorizationCodeServices authorizationCodeServices(){
-        return new InMemoryAuthorizationCodeServices();
     }
 
     /**
@@ -95,7 +79,7 @@ public class AuthorizationServerConfiguration extends AuthorizationServerConfigu
                 .authenticationManager(authenticationManager)//密码模式需要
                 .authorizationCodeServices(authorizationCodeServices)//授权码模式需要
                 .tokenServices(tokenServices())//令牌管里服务
-                .allowedTokenEndpointRequestMethods(HttpMethod.POST);//允许post请求
+                .allowedTokenEndpointRequestMethods(HttpMethod.POST,HttpMethod.GET);//允许post以及GET请求
     }
 
     /**
@@ -111,4 +95,77 @@ public class AuthorizationServerConfiguration extends AuthorizationServerConfigu
                 .checkTokenAccess("permitAll()")///oauth2/check_token公开出去
                 .allowFormAuthenticationForClients();//表单认证
     }
+
+
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * 授权码模式的存取策略——内存
+     * @return
+     */
+    @Bean
+    public AuthorizationCodeServices authorizationCodeServices(){
+        return new InMemoryAuthorizationCodeServices();
+    }
+
+    /**
+     * 设置令牌的存储策略以及令牌的有效时间
+     * @return
+     */
+    @Bean
+    public AuthorizationServerTokenServices tokenServices(){
+        DefaultTokenServices services=new DefaultTokenServices();
+        services.setClientDetailsService(clientDetailsService);//客户端信息服务
+        services.setSupportRefreshToken(true);//是否刷新令牌
+        services.setTokenStore(tokenStore);//令牌的存储策略
+        services.setAccessTokenValiditySeconds(7200);//令牌的有效期2小时
+        services.setRefreshTokenValiditySeconds(259200);//刷新令牌的有效期3天
+        return services;
+    }
+
+
+    /**
+     * 密码模式的认证配置
+     * @return
+     * @throws Exception
+     */
+    @Bean
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        AuthenticationManager authenticationManager=new AuthenticationManager() {
+            @Override
+            public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+                return daoAuhthenticationProvider().authenticate(authentication);
+            }
+        };
+        return authenticationManager;
+    }
+
+
+    @Bean
+    public AuthenticationProvider daoAuhthenticationProvider() {
+        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
+        daoAuthenticationProvider.setUserDetailsService(userDetailsService());
+        daoAuthenticationProvider.setHideUserNotFoundExceptions(false);
+        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
+        return daoAuthenticationProvider;
+    }
+
+    /**
+     *添加用户信息，暂读内存
+     * @return
+     */
+    @Bean
+    UserDetailsService userDetailsService() {
+        InMemoryUserDetailsManager userDetailsService = new InMemoryUserDetailsManager();
+        userDetailsService.createUser(User.withUsername("user_1").password(passwordEncoder().encode("123456"))
+                .authorities("ROLE_USER").build());
+        userDetailsService.createUser(User.withUsername("user_2").password(passwordEncoder().encode("1234567"))
+                .authorities("ROLE_USER").build());
+        return userDetailsService;
+    }
+
+
 }
